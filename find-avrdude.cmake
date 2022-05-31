@@ -13,11 +13,10 @@
 # # path-to-repo -- ditto
 # include(${path-to-repo}/cmake-find-avrdude/find-avrdude.cmake)
 #
-# # 'path' is a cmake variable containing a path to avrdude
-# # 'PATH' is a name of an environment variable containing a same path
-# # at least one of them must be correctly set
+# # 'root-path' a cmake variable that is eithert containing a path to avrdude
+# # or is a name of an environment variable containing a same path
 #
-# find_avrdude(${path}, PATH)
+# find_avrdude(${root-path})
 #
 # # check if avrdude found
 # if(EXISTS ${CMAKE_AVRDUDE})
@@ -46,21 +45,27 @@
 # SOFTWARE.
 
 
-function(__impl__find_avrdude path env-var-name)
-    set (result     "FAILURE" PARENT_SCOPE)
-    set (result-msg ""      PARENT_SCOPE)
+function(__impl__find_avrdude root-path)
+    set (result       "FAILURE" PARENT_SCOPE)
+    set (result-msg   ""        PARENT_SCOPE)
+    set (message-type "WARNING" PARENT_SCOPE)
 
-    if(NOT path AND NOT DEFINED ENV{${env-var-name}})
-        set (result-msg "neither cmake 'path' nor environmental variable '${env-var-name}' are defined" PARENT_SCOPE)
-        return()
+    if (DEFINED ENV{${root-path}})
+        message (STATUS "'root-path' is an environment variable name")
+        set (root-path $ENV{${root-path}})
     endif()
 
-    if(NOT path)
-        set (path $ENV{${env-var-name}})
-    endif()
-
-    if(NOT EXISTS ${path})
-        set (result-msg "directory does not exist: '${path}'" PARENT_SCOPE)
+    # check again
+    if (NOT EXISTS ${root-path})
+        set (result-msg "'path' " PARENT_SCOPE)
+        set (
+            result-msg
+"'root-path' expands to: '${root-path}'
+To use this function 'path' variable must be either:
+- a string containing a full path to the avrdude, or
+- a name of an environment variable that contains the mentioned path"
+            PARENT_SCOPE
+        )
         return()
     endif()
 
@@ -70,14 +75,18 @@ function(__impl__find_avrdude path env-var-name)
     elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
         set (exec_end "")
     else()
-        set (result-msg "${CMAKE_HOST_SYSTEM_NAME} not supported by this script" PARENT_SCOPE)
+        set (
+            result-msg
+            "${CMAKE_HOST_SYSTEM_NAME} not supported by this script"
+            PARENT_SCOPE
+        )
         return ()
     endif()
 
 
-    set (avrdude-exe   "${path}/avrdude${exec_end}")
-    set (avrdude-conf  "${path}/avrdude.conf")
-    set (avrdude-pdb   "${path}/avrdude.pdb")
+    set (avrdude-exe   "${root-path}/avrdude${exec_end}")
+    set (avrdude-conf  "${root-path}/avrdude.conf")
+    set (avrdude-pdb   "${root-path}/avrdude.pdb")
 
 
     if (NOT EXISTS "${avrdude-exe}")
@@ -92,32 +101,33 @@ function(__impl__find_avrdude path env-var-name)
     endif()
 
 
-    set (result "SUCCESS" PARENT_SCOPE)
-    set (result-msg "found in: ${path}" PARENT_SCOPE)
-    set (cmake-avrdude ${avrdude-exe} PARENT_SCOPE)
+    set (result       "SUCCESS"                PARENT_SCOPE)
+    set (result-msg   "found in: ${root-path}" PARENT_SCOPE)
+    set (message-type "STATUS"                 PARENT_SCOPE)
+    set (cmake-avrdude ${avrdude-exe}          PARENT_SCOPE)
 
 
 endfunction()
 
 
-#
 # @brief find_avrdude
 #
 # Searches for 3 avrdude files: avrdude executable, avrdude.pdb and avrdude.conf
-# -- first tries ${path}
-# -- on failure tries ENV{${env-var-name}}
+# -- first checks if ${root-path} is an environment variable name
+#    if it is -- expands it's value and goes with that
+# -- if it isn't -- assumes it's a string with full path
 #
-# @param path -- explicit path to avrdude installation
-# @param env-var-name -- name of an environment variable that expands
+# @param path -- explicit path to avrdude installation,
+#                or name of an environment variable that expands
 # @result
-# -- on success/failure prints status with a message of success/failure
+# -- on success/failure prints STATUS/WARNING with an appropriate message
 # -- on success sets a valid variable CMAKE_AVRDUDE outside of the scope of
 #    this funciton
-#
-function (find_avrdude path env-var-name)
-    __impl__find_avrdude("${path}" "${env-var-name}")
+function (find_avrdude root-path)
 
-    message(STATUS "find_avrdude: ${result}, ${result-msg}")
+    __impl__find_avrdude(${root-path})
+
+    message (${message-type} "find_avrdude: ${result}, ${result-msg}")
 
     if (${result} STREQUAL "SUCCESS")
         set (CMAKE_AVRDUDE ${cmake-avrdude} PARENT_SCOPE)

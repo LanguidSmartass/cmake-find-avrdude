@@ -4,14 +4,13 @@ A simple cmake function that helps to find avrdude
 ## How to use in CMake scripts/CMakeLists.txt:
 
 ```cmake
-# path-to-repo -- ditto
+#path-to-repo -- ditto
 include(${path-to-repo}/cmake-find-avrdude/find-avrdude.cmake)
 
-# 'path' is a cmake variable containing a path to avrdude
-# 'PATH' is a name of an environment variable containing a same path
-# at least one of them must be correctly set
+# 'root-path' a cmake variable that is eithert containing a path to avrdude
+# or is a name of an environment variable containing a same path
 
-find_avrdude(${path}, PATH)
+find_avrdude(${root-path})
 
 # check if avrdude found
 if(EXISTS ${CMAKE_AVRDUDE})
@@ -24,17 +23,15 @@ endif()
 # @brief find_avrdude
 #
 # Searches for 3 avrdude files: avrdude executable, avrdude.pdb and avrdude.conf
-# -- first tries ${path}
-# -- on failure tries ENV{${env-var-name}}
+# -- first checks if ${root-path} is an environment variable name
+#    if it is -- expands it's value and goes with that
+# -- if it isn't -- assumes it's a string with full path
 #
-# @param path -- explicit path to avrdude installation
-# @param env-var-name -- name of an environment variable that expands
+# @param path -- explicit path to avrdude installation,
+#                or name of an environment variable that expands
 # @result
-# -- on success/failure prints status with a message of success/failure
-# -- on success sets a variable CMAKE_AVRDUDE outside of the scope of
+# -- on success/failure prints STATUS/WARNING with an appropriate message
+# -- on success sets a valid variable CMAKE_AVRDUDE outside of the scope of
 #    this funciton
-# -- on failure to find sets a variable CMAKE_AVRDUDE-NOTFOUND
-# -- on other failures reports SEND_ERROR indicating that there is something
-#    wrong with this script
 function (find_avrdude path env-var-name)
 ```
